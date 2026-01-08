@@ -44,12 +44,8 @@ products from Adafruit!
 #include <Wire.h>
 #include <SPI.h>
 #include <Adafruit_PN532.h>
-
-// If using the breakout with SPI, define the pins for SPI communication.
-#define PN532_SCK  (2)
-#define PN532_MOSI (3)
-#define PN532_SS   (4)
-#define PN532_MISO (5)
+#include <server_requester.h>
+#include <secrets.h>
 
 // If using the breakout or shield with I2C, define just the pins connected
 // to the IRQ and reset lines.  Use the values below (2, 3) for the shield!
@@ -74,6 +70,9 @@ void setup(void) {
 
   Serial.println("Hello!");
 
+  // Setup WiFi
+  setupWiFi((char*)WIFI_SSID, (char*)WIFI_PASS);
+
   nfc.begin();
 
   uint32_t versiondata = nfc.getFirmwareVersion();
@@ -81,10 +80,12 @@ void setup(void) {
     Serial.print("Didn't find PN53x board");
     while (1); // halt
   }
+
   // Got ok data, print it out!
   Serial.print("Found chip PN5"); Serial.println((versiondata>>24) & 0xFF, HEX);
   Serial.print("Firmware ver. "); Serial.print((versiondata>>16) & 0xFF, DEC);
   Serial.print('.'); Serial.println((versiondata>>8) & 0xFF, DEC);
+
 
   startListeningToNFC();
 }
@@ -150,6 +151,16 @@ void handleCardDetected() {
         cardid |= uid[3];
         Serial.print("Seems to be a Mifare Classic card #");
         Serial.println(cardid);
+
+        // Ask server for data about coffee
+        char response[256];
+        if (getCardData(cardid, response, sizeof(response))) {
+          Serial.print("Got: ");
+          Serial.println(response);
+        } else {
+          Serial.println("Failed to get coffee-data on card.");
+        }
+
       }
       Serial.println("");
 

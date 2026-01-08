@@ -1,5 +1,9 @@
 # Coffee-limiter
 
+## Project Description
+
+This project is a coffee-limiter that uses a PN532 NFC reader to detect a card and look up the user on Hackerspace's website to see if they are allowed more coffee today.
+
 ## Project Development
 
 ### On VSCode
