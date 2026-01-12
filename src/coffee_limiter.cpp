@@ -46,11 +46,16 @@ products from Adafruit!
 #include <Adafruit_PN532.h>
 #include <server_requester.h>
 #include <secrets.h>
+#include <crystal_display.h>
 
 // If using the breakout or shield with I2C, define just the pins connected
 // to the IRQ and reset lines.  Use the values below (2, 3) for the shield!
 #define PN532_IRQ   (2)
 #define PN532_RESET (3)  // Not connected by default on the NFC Shield
+
+// Define LED pins
+#define HTTP_ERROR_PIN (4)
+#define HTTP_SUCCESS_PIN (5)
 
 const int DELAY_BETWEEN_CARDS = 500;
 long timeLastCardRead = 0;
@@ -66,18 +71,29 @@ void handleCardDetected();
 
 void setup(void) {
   Serial.begin(115200);
-  while (!Serial) delay(10); // for Leonardo/Micro/Zero
 
-  Serial.println("Hello!");
-
+  // Setup LCD Display
+  setupLcd();
+  
+  // Wire up display callback for server_requester
+  setDisplayCallback(displayText);
+  
   // Setup WiFi
-  setupWiFi((char*)WIFI_SSID, (char*)WIFI_PASS);
+  if (!setupWiFi((char*)WIFI_SSID, (char*)WIFI_PASS)) {
+    displayText("Failed to connect to WiFi. Please restart.");
+    while (true)
+      ; // halt
+  }
 
+  // Begin nfc reader protocol
+  displayText("Starting nfc reader protocol...");
   nfc.begin();
 
+  // Find reader
   uint32_t versiondata = nfc.getFirmwareVersion();
   if (! versiondata) {
     Serial.print("Didn't find PN53x board");
+    displayText("Didn't find PN53x board");
     while (1); // halt
   }
 
@@ -91,6 +107,7 @@ void setup(void) {
 }
 
 void loop(void) {
+  displayText("Waiting for student-card...");
   if (readerDisabled) {
     if (millis() - timeLastCardRead > DELAY_BETWEEN_CARDS) {
       readerDisabled = false;
@@ -157,8 +174,14 @@ void handleCardDetected() {
         if (getCardData(cardid, response, sizeof(response))) {
           Serial.print("Got: ");
           Serial.println(response);
+          digitalWrite(HTTP_ERROR_PIN, LOW);
+          digitalWrite(HTTP_SUCCESS_PIN, HIGH);
         } else {
           Serial.println("Failed to get coffee-data on card.");
+          digitalWrite(HTTP_SUCCESS_PIN, LOW);
+          digitalWrite(HTTP_ERROR_PIN, HIGH);
+          delay(2000);
+          digitalWrite(HTTP_ERROR_PIN, LOW);
         }
 
       }
