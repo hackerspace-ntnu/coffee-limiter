@@ -14,13 +14,13 @@ void setDisplayCallback(DisplayCallback callback) {
   displayCallback = callback;
 }
 
-static void updateDisplay(char* message) {
+static void updateDisplay(const char *message) {
   if (displayCallback != nullptr) {
     displayCallback(message);
   }
 }
 
-bool setupWiFi(char ssid[], char pass[])
+bool setupWiFi(char* ssid, const char* pass)
 {
   // Check for shield
   if (WiFi.status() == WL_NO_SHIELD)
@@ -34,13 +34,13 @@ bool setupWiFi(char ssid[], char pass[])
   {
     Serial.print("Connecting to: ");
     Serial.println(ssid);
-    updateDisplay((char*)"Connecting to WiFi...");
+    updateDisplay("Connecting to WiFi...");
     wifiStatus = WiFi.begin(ssid, pass);
     delay(5000);
   }
 
+  updateDisplay("WiFi connected!");
   Serial.println("Connected to WiFi!");
-  updateDisplay((char*)"WiFi connected!");
   Serial.print("IP Address: ");
   Serial.println(WiFi.localIP());
   return true;
@@ -70,16 +70,16 @@ bool getCardData(uint32_t cardid, char* outBuffer, size_t bufferSize)
   sprintf(path, "%s%lu", API_BASE_PATH, cardid);
 
   // Contact server
-  updateDisplay((char*)"Contacting server...");
+  updateDisplay("Contacting server...");
   if (!httpGet(API_SERVER, path))
   {
     Serial.println("Connection failed");
-    updateDisplay((char*)"Connection failed!");
+    updateDisplay("Connection failed!");
     return false;
   }
 
   Serial.println("Request sent!");
-  updateDisplay((char*)"Waiting for response...");
+  updateDisplay("Waiting for response...");
 
   // Wait for response with timeout
   unsigned long timeout = millis() + 5000;
@@ -111,7 +111,8 @@ bool getCardData(uint32_t cardid, char* outBuffer, size_t bufferSize)
       }
 
       // Skip remaining header
-      if (client.find("\r\n\r\n"))
+      static char HTTP_HEADER_END[] = "\r\n\r\n";
+      if (client.find(HTTP_HEADER_END))
       {
         // Read body into buffer
         size_t bytesRead = 0;

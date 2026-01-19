@@ -1,2 +1,2 @@
 void setupLcd();
-void displayText(char *str);
+void displayText(const char str[]);

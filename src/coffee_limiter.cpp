@@ -1,10 +1,9 @@
+const bool disableWifi = true; 
+
 /**************************************************************************/
 /*!
-    @file     readMifareClassicIrq.pde
-    @author   Adafruit Industries
-	@license  BSD (see license.txt)
 
-    This example will wait for any ISO14443A card or tag, and
+    This will wait for any ISO14443A card or tag, and
     depending on the size of the UID will attempt to read from it.
 
     If the card has a 4-byte UID it is probably a Mifare
@@ -19,12 +18,6 @@
     Note that you need the baud rate to be 115200 because we need to
 	print out the data and read from the card at the same time!
 
-This is an example sketch for the Adafruit PN532 NFC/RFID breakout boards
-This library works with the Adafruit NFC breakout
-  ----> https://www.adafruit.com/products/364
-
-Check out the links above for our tutorials and wiring diagrams
-
 This example is for communicating with the PN532 chip using I2C. Wiring
 should be as follows:
   PN532 SDA -> SDA pin
@@ -34,10 +27,6 @@ should be as follows:
   PN532 SCL -> 3.3v (with 2k resistor)
   PN532 3.3v -> 3.3v
   PN532 GND -> GND
-
-Adafruit invests time and resources providing this open source code,
-please support Adafruit and open-source hardware by purchasing
-products from Adafruit!
 */
 /**************************************************************************/
 #include <Arduino.h>
@@ -50,12 +39,8 @@ products from Adafruit!
 
 // If using the breakout or shield with I2C, define just the pins connected
 // to the IRQ and reset lines.  Use the values below (2, 3) for the shield!
-#define PN532_IRQ   (2)
-#define PN532_RESET (3)  // Not connected by default on the NFC Shield
-
-// Define LED pins
-#define HTTP_ERROR_PIN (4)
-#define HTTP_SUCCESS_PIN (5)
+#define PN532_IRQ   (A0)
+#define PN532_RESET (A1)  // Not connected by default on the NFC Shield
 
 const int DELAY_BETWEEN_CARDS = 500;
 long timeLastCardRead = 0;
@@ -79,21 +64,23 @@ void setup(void) {
   setDisplayCallback(displayText);
   
   // Setup WiFi
-  if (!setupWiFi((char*)WIFI_SSID, (char*)WIFI_PASS)) {
-    displayText("Failed to connect to WiFi. Please restart.");
-    while (true)
-      ; // halt
+  if (!disableWifi) {
+    if (!setupWiFi((char*)WIFI_SSID, (const char*)WIFI_PASS)) {
+      displayText("Failed to connect to WiFi.");
+      while (true)
+        ; // halt
+    }
   }
 
   // Begin nfc reader protocol
-  displayText("Starting nfc reader protocol...");
+  displayText("Starting NFC reader protocol...");
   nfc.begin();
 
   // Find reader
   uint32_t versiondata = nfc.getFirmwareVersion();
-  if (! versiondata) {
+  if (!versiondata) {
     Serial.print("Didn't find PN53x board");
-    displayText("Didn't find PN53x board");
+    displayText("NFC reader not found.");
     while (1); // halt
   }
 
@@ -174,14 +161,9 @@ void handleCardDetected() {
         if (getCardData(cardid, response, sizeof(response))) {
           Serial.print("Got: ");
           Serial.println(response);
-          digitalWrite(HTTP_ERROR_PIN, LOW);
-          digitalWrite(HTTP_SUCCESS_PIN, HIGH);
         } else {
           Serial.println("Failed to get coffee-data on card.");
-          digitalWrite(HTTP_SUCCESS_PIN, LOW);
-          digitalWrite(HTTP_ERROR_PIN, HIGH);
           delay(2000);
-          digitalWrite(HTTP_ERROR_PIN, LOW);
         }
 
       }
